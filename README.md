@@ -1,3 +1,5 @@
+<img align="right" src="https://visitor-badge.laobi.icu/badge?page_id=logically-nerd.hen" />
+
 # HEN (Help! Emergency Network) 🚨
 
 Emergency mesh networking app for disaster communication when cellular networks fail.
