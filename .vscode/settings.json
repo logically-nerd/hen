@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "/home/logically-nerd/Workspace/hen/linux"
+  "cmake.sourceDirectory": "/home/logically-nerd/Workspace/hen/linux",
+  "java.configuration.updateBuildConfiguration": "interactive"
 }

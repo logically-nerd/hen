@@ -7,116 +7,311 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'HEN - Emergency Network',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
+        useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const EmergencyHomePage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class EmergencyHomePage extends StatefulWidget {
+  const EmergencyHomePage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<EmergencyHomePage> createState() => _EmergencyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _EmergencyHomePageState extends State<EmergencyHomePage>
+    with TickerProviderStateMixin {
+  bool _isInitializing = false;
+  List<String> _progressMessages = [];
+  bool _initializationComplete = false;
+  String? _errorMessage;
+  
+  late AnimationController _pulseController;
+  late AnimationController _scaleController;
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _scaleAnimation;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+  @override
+  void initState() {
+    super.initState();
+    
+    // Pulse animation for connecting state
+    _pulseController = AnimationController(
+      duration: const Duration(seconds: 1),
+      vsync: this,
+    );
+    _pulseAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.2,
+    ).animate(CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOut,
+    ));
+
+    // Scale animation for button press
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(
+      parent: _scaleController,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _scaleController.dispose();
+    super.dispose();
+  }
+
+  void _handleSOSPress() async {
+    // Button press animation
+    _scaleController.forward().then((_) {
+      _scaleController.reverse();
     });
+
+    setState(() {
+      _isInitializing = true;
+      _progressMessages.clear();
+      _initializationComplete = false;
+      _errorMessage = null;
+    });
+
+    // Start pulse animation
+    _pulseController.repeat(reverse: true);
+
+    try {
+      // Stop pulse animation
+      _pulseController.stop();
+      _pulseController.reset();
+      
+      setState(() {
+        _initializationComplete = true;
+        _isInitializing = false;
+        _progressMessages.add('✅ Emergency network ready!');
+      });
+
+      // After successful initialization, you can call other functions here
+      // _startDeviceDiscovery();
+      // _createMeshNetwork();
+      
+    } catch (e) {
+      // Stop pulse animation on error
+      _pulseController.stop();
+      _pulseController.reset();
+      
+      setState(() {
+        _isInitializing = false;
+        _errorMessage = e.toString();
+        _progressMessages.add('❌ Initialization failed: $e');
+      });
+    }
+  }
+
+  void _addProgressMessage(String message) {
+    setState(() {
+      _progressMessages.add(message);
+    });
+  }
+
+  void _resetInterface() {
+    setState(() {
+      _progressMessages.clear();
+      _initializationComplete = false;
+      _errorMessage = null;
+      _isInitializing = false;
+    });
+    
+    _pulseController.stop();
+    _pulseController.reset();
+  }
+
+  Color _getButtonColor() {
+    if (_isInitializing) return Colors.grey[600]!;
+    if (_initializationComplete) return Colors.green[600]!;
+    return Colors.red;
+  }
+
+  String _getButtonText() {
+    if (_isInitializing) return 'CONNECTING';
+    if (_initializationComplete) return 'READY';
+    return 'SOS';
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              // Header
+              const Text(
+                'HEN',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Help! Emergency Network',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                ),
+              ),
+              
+              const Spacer(),
+              
+              // SOS Button with animations
+              AnimatedBuilder(
+                animation: _scaleAnimation,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: _scaleAnimation.value,
+                    child: AnimatedBuilder(
+                      animation: _pulseAnimation,
+                      builder: (context, child) {
+                        return Container(
+                          width: 220,
+                          height: 220,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _getButtonColor(),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _getButtonColor().withOpacity(0.4),
+                                blurRadius: _isInitializing ? 30 * _pulseAnimation.value : 20,
+                                spreadRadius: _isInitializing ? 10 * _pulseAnimation.value : 5,
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(110),
+                              onTap: _isInitializing ? null : _handleSOSPress,
+                              child: Center(
+                                child: _isInitializing
+                                    ? Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 3,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            _getButtonText(),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 1,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Text(
+                                        _getButtonText(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 36,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 2,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Status text
+              Text(
+                _isInitializing 
+                    ? 'Initializing Emergency Network...'
+                    : _initializationComplete
+                        ? 'Emergency Network Ready'
+                        : _errorMessage != null
+                            ? 'Initialization Failed'
+                            : 'Tap SOS to Initialize Emergency Network',
+                style: TextStyle(
+                  color: _errorMessage != null ? Colors.red : Colors.white70,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              
+              const Spacer(),
+              
+              // Progress Messages
+              Expanded(
+                flex: 2,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: _progressMessages.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Progress will be shown here',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 14,
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _progressMessages.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              child: Text(
+                                _progressMessages[index],
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
